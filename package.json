@@ -1,0 +1,36 @@
+{
+  "name": "sshpk-agent",
+  "version": "0.1.0",
+  "description": "ssh-agent client for use with sshpk",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "tape test/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arekinath/node-sshpk-agent.git"
+  },
+  "author": "Joyent, Inc",
+  "contributors": [
+    {
+      "name": "Alex Wilson",
+      "email": "alex@cooperi.net"
+    }
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/arekinath/node-sshpk-agent/issues"
+  },
+  "engines": {
+    "node": ">=0.8.0"
+  },
+  "homepage": "https://github.com/arekinath/node-sshpk-agent#readme",
+  "dependencies": {
+    "sshpk": ">=1.0.0 <2.0.0",
+    "assert-plus": "0.1.5"
+  },
+  "devDependencies": {
+    "tape": ">=3.5.0 <4.0.0",
+    "benchmark": ">=1.0.0 <2.0.0"
+  }
+}
