@@ -5,6 +5,7 @@ var test = require('tape').test;
 var Agent = require('./ssh-agent-ctl');
 var sshpk = require('sshpk');
 var path = require('path');
+var fs = require('fs');
 
 var sshpkAgent = require('../lib/index');
 
@@ -15,6 +16,8 @@ var ID_RSA_FP = sshpk.parseFingerprint(
     'SHA256:tT5wcGMJkBzNu+OoJYEgDCwIcDAIFCUahAmuTT4qC3s');
 var ID_ECDSA_FP = sshpk.parseFingerprint(
     'SHA256:e34c67Npv31uMtfVUEBJln5aOcJugzDaYGsj1Uph5DE');
+var ID_DSA_FP = sshpk.parseFingerprint(
+    'SHA256:PCfwpK62grBWrAJceLetSNv9CTrX8yoD0miKf11DBG8');
 
 test('setup', function (t) {
 	delete (process.env['SSH_AGENT_PID']);
@@ -134,6 +137,96 @@ test('AgentClient queues up requests', function (t) {
 
 	for (var i = 0; i < 10; ++i)
 		c.listKeys(callback);
+});
+
+test('AgentClient can\'t sign with an unknown key', function (t) {
+	var c = new sshpkAgent.AgentClient();
+	var key = sshpk.parseKey(
+	    fs.readFileSync(path.join(testDir, 'id_ecdsa2')), 'pem');
+	c.sign(key, 'foobar', function (err, sig) {
+		t.ok(err);
+		t.notStrictEqual(err.message.indexOf('failure'), -1);
+		t.end();
+	});
+});
+
+test('AgentClient can sign data with an rsa key', function (t) {
+	var c = new sshpkAgent.AgentClient();
+	c.listKeys(function (err, keys) {
+		t.error(err);
+
+		var key = keys[0];
+		t.strictEqual(key.type, 'rsa');
+		t.ok(ID_RSA_FP.matches(key));
+
+		c.sign(key, 'foobar', function (err, sig) {
+			t.error(err);
+			t.ok(sig);
+			t.ok(sig instanceof sshpk.Signature);
+
+			t.strictEqual(sig.hashAlgorithm, 'sha1');
+
+			var v = key.createVerify('sha1');
+			v.update('foobar');
+			t.ok(v.verify(sig));
+
+			t.end();
+		});
+	});
+});
+
+test('AgentClient can sign data with an ecdsa key', function (t) {
+	var c = new sshpkAgent.AgentClient();
+	c.listKeys(function (err, keys) {
+		t.error(err);
+
+		var key = keys[1];
+		t.strictEqual(key.type, 'ecdsa');
+		t.ok(ID_ECDSA_FP.matches(key));
+
+		c.sign(key, 'foobar', function (err, sig) {
+			t.error(err);
+			t.ok(sig);
+			t.ok(sig instanceof sshpk.Signature);
+
+			t.strictEqual(sig.hashAlgorithm, 'sha384');
+
+			var v = key.createVerify('sha384');
+			v.update('foobar');
+			t.ok(v.verify(sig));
+
+			t.end();
+		});
+	});
+});
+
+test('AgentClient can sign data with a dsa key', function (t) {
+	var c = new sshpkAgent.AgentClient();
+	agent.addKey(path.join(testDir, 'id_dsa'), function (err) {
+		t.error(err);
+
+		c.listKeys(function (err, keys) {
+			t.error(err);
+
+			var key = keys[2];
+			t.strictEqual(key.type, 'dsa');
+			t.ok(ID_DSA_FP.matches(key));
+
+			c.sign(key, 'foobar', function (err, sig) {
+				t.error(err);
+				t.ok(sig);
+				t.ok(sig instanceof sshpk.Signature);
+
+				t.strictEqual(sig.hashAlgorithm, 'sha1');
+
+				var v = key.createVerify('sha1');
+				v.update('foobar');
+				t.ok(v.verify(sig));
+
+				t.end();
+			});
+		});
+	});
 });
 
 test('agent teardown', function (t) {
