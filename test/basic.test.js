@@ -13,6 +13,8 @@ var testDir = __dirname;
 
 var ID_RSA_FP = sshpk.parseFingerprint(
     'SHA256:tT5wcGMJkBzNu+OoJYEgDCwIcDAIFCUahAmuTT4qC3s');
+var ID_ECDSA_FP = sshpk.parseFingerprint(
+    'SHA256:e34c67Npv31uMtfVUEBJln5aOcJugzDaYGsj1Uph5DE');
 
 test('setup', function (t) {
 	delete (process.env['SSH_AGENT_PID']);
@@ -58,6 +60,7 @@ test('AgentClient can connect', function (t) {
 	var c = new sshpkAgent.AgentClient();
 	c.connect(function () {
 		t.ok(c);
+		t.strictEqual(c.state, 'connected');
 		t.end();
 	});
 });
@@ -88,6 +91,49 @@ test('AgentClient can list keys with one key loaded', function (t) {
 			t.end();
 		});
 	});
+});
+
+test('AgentClient can list multiple keys', function (t) {
+	var c = new sshpkAgent.AgentClient();
+	agent.addKey(path.join(testDir, 'id_ecdsa'), function (err) {
+		t.error(err);
+		c.listKeys(function (err, keys) {
+			t.error(err);
+			t.ok(keys instanceof Array);
+			t.equal(keys.length, 2);
+
+			t.ok(keys[1] instanceof sshpk.Key);
+			t.strictEqual(keys[1].type, 'ecdsa');
+			t.ok(ID_ECDSA_FP.matches(keys[1]));
+			t.end();
+		})
+	});
+});
+
+test('AgentClient can re-use connection', function (t) {
+	var c = new sshpkAgent.AgentClient();
+	c.listKeys(function (err, keys) {
+		t.error(err);
+		t.strictEqual(c.state, 'connected');
+		c.listKeys(function (err2, keys2) {
+			t.error(err2);
+			t.end();
+		});
+	})
+});
+
+test('AgentClient queues up requests', function (t) {
+	var c = new sshpkAgent.AgentClient();
+	var n = 0;
+
+	function callback(err, keys) {
+		t.error(err);
+		if (++n >= 10)
+			t.end();
+	}
+
+	for (var i = 0; i < 10; ++i)
+		c.listKeys(callback);
 });
 
 test('agent teardown', function (t) {
