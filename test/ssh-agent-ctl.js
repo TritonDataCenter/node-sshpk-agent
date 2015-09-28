@@ -110,6 +110,23 @@ Agent.prototype.close = function (cb) {
     }
 };
 
+Agent.prototype.signal = function (signal, cb) {
+    assert.optionalFunc(cb, 'callback');
+    assert.strictEqual(this.state, 'running', 'agent is not running');
+    assert.string(this.env['SSH_AGENT_PID'], 'SSH_AGENT_PID');
+    var self = this;
+    var kid = spawn('kill', [
+        '-' + signal.toUpperCase(),
+        this.env['SSH_AGENT_PID']]);
+    kid.on('close', function (rc) {
+        if (rc != 0) {
+            cb(new Error('Failed to kill agent: rc = ' + rc));
+            return;
+        }
+        cb(null);
+    });
+};
+
 Agent.prototype.importEnv = function () {
     assert.strictEqual(this.state, 'running', 'agent is not running');
     var env = this.env;

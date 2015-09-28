@@ -28,11 +28,11 @@ Creates a new ssh-agent client.
 Parameters
 
 - `options` -- optional Object, containing properties:
-  - `socketPath` -- an optional String, path to the UNIX socket to reach the SSH agent
-                    via. If not specified, defaults to
+  - `socketPath` -- an optional String, path to the UNIX socket to reach the SSH
+                    agent via. If not specified, defaults to
                     `process.env['SSH_AUTH_SOCK']`
   - `timeout` -- an optional Number, milliseconds to wait for the agent to
-                 respond to a request before returning error.
+                 respond to a request before returning error. Defaults to 2000.
 
 ### `AgentClient#listKeys([options, ]callback);`
 

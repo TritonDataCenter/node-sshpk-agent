@@ -229,9 +229,65 @@ test('AgentClient can sign data with a dsa key', function (t) {
 	});
 });
 
+var c, c2;
+
+test('pre-create AgentClients before stop/teardown', function (t) {
+	c = new sshpkAgent.AgentClient();
+	c2 = new sshpkAgent.AgentClient();
+	c.connect(function () {
+		t.end();
+	});
+});
+
+test('agent stop', function (t) {
+	agent.signal('stop', function (err) {
+		t.error(err);
+		t.end();
+	});
+});
+
+test('connected AgentClient times out to stopped agent', function (t) {
+	c.listKeys({timeout: 1000}, function (err, keys) {
+		t.ok(err);
+		t.notStrictEqual(err.message.toLowerCase().
+		    indexOf('timeout'), -1);
+		t.end();
+	});
+});
+
+test('disconnected AgentClient can\'t connect to stopped agent', function (t) {
+	c2.listKeys({timeout: 1000}, function (err, keys) {
+		t.ok(err);
+		t.end();
+	});
+});
+
+test('agent resume', function (t) {
+	agent.signal('cont', function (err) {
+		t.error(err);
+		t.end();
+	});
+});
+
+test('timed out AgentClient reconnects and works', function (t) {
+	c.listKeys({timeout: 1000}, function (err, keys) {
+		t.error(err);
+		t.equal(keys.length, 3);
+		t.end();
+	});
+});
+
+test('disconnected AgentClient reconnects and works', function (t) {
+	c2.listKeys({timeout: 1000}, function (err, keys) {
+		t.error(err);
+		t.equal(keys.length, 3);
+		t.end();
+	});
+});
+
 test('agent teardown', function (t) {
-    t.ok(agent);
-    agent.close(function () {
-        t.end();
-    });
+	t.ok(agent);
+	agent.close(function () {
+		t.end();
+	});
 });
