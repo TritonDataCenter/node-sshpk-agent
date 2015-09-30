@@ -62,3 +62,72 @@ Parameters
 - `callback` -- function `(error, signature)` with arguments:
   - `error` -- null if no error, otherwise instance of `Error`
   - `signature` -- an Object, instance of `sshpk.Signature`
+
+### `AgentClient#addKey(privkey[, options], callback);`
+
+Adds a new private key to the agent.
+
+Parameters
+
+- `privkey` -- an Object, instance of `sshpk.PrivateKey`, key to add
+- `options` -- optional Object, containing properties:
+  - `expires` -- optional Number, seconds until this key expires. If not given,
+                 key will last indefinitely. Expiry is handled by the agent
+                 itself.
+  - `timeout` -- optional Number, overrides the constructor timeout
+- `callback` -- function `(error)` with arguments:
+  - `error` -- null if no error, otherwise instance of `Error`
+
+### `AgentClient#removeKey(key[, options], callback);`
+
+Removes a private key from the agent.
+
+Parameters
+
+- `key` -- an Object, instance of `sshpk.Key`, key to remove
+- `options` -- optional Object, containing properties:
+  - `timeout` -- an optional Number, overrides the constructor timeout just for
+                 this request
+- `callback` -- function `(error)` with arguments:
+  - `error` -- null if no error, otherwise instance of `Error`
+
+### `AgentClient#removeAllKeys([options, ]callback);`
+
+Removes all private keys from the agent.
+
+Parameters
+
+- `options` -- optional Object, containing properties:
+  - `timeout` -- an optional Number, overrides the constructor timeout just for
+                 this request
+- `callback` -- function `(error)` with arguments:
+  - `error` -- null if no error, otherwise instance of `Error`
+
+### `AgentClient#lock(password[, options], callback);`
+
+Locks the agent with a password, causing it to respond with failure to all
+requests (except a request to list keys, which always returns an empty list),
+until unlocked with the same password.
+
+Parameters
+
+- `password` -- a String, password to be required to unlock the agent
+- `options` -- optional Object, containing properties:
+  - `timeout` -- an optional Number, overrides the constructor timeout just for
+                 this request
+- `callback` -- function `(error)` with arguments:
+  - `error` -- null if no error, otherwise instance of `Error`
+
+### `AgentClient#unlock(password[, options], callback);`
+
+Unlocks an agent that has been previously locked. The given `password` must
+match the password used to lock the agent.
+
+Parameters
+
+- `password` -- a String, password to unlock the agent
+- `options` -- optional Object, containing properties:
+  - `timeout` -- an optional Number, overrides the constructor timeout just for
+                 this request
+- `callback` -- function `(error)` with arguments:
+  - `error` -- null if no error, otherwise instance of `Error`
