@@ -113,17 +113,20 @@ test('Client can list multiple keys', function (t) {
 	});
 });
 
-test('Client can re-use connection', function (t) {
-	var c = new sshpkAgent.Client();
-	c.listKeys(function (err, keys) {
-		t.error(err);
-		t.strictEqual(c.state, 'connected');
-		c.listKeys(function (err2, keys2) {
-			t.error(err2);
-			t.end();
-		});
-	})
-});
+/* Connection re-use disabled on node 0.8 because it lacks unref() */
+if (!process.version.match(/^v0\.[0-8]\./)) {
+	test('Client can re-use connection', function (t) {
+		var c = new sshpkAgent.Client();
+		c.listKeys(function (err, keys) {
+			t.error(err);
+			t.strictEqual(c.state, 'connected');
+			c.listKeys(function (err2, keys2) {
+				t.error(err2);
+				t.end();
+			});
+		})
+	});
+}
 
 test('Client queues up requests', function (t) {
 	var c = new sshpkAgent.Client();
