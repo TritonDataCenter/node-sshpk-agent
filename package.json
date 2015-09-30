@@ -27,7 +27,7 @@
   "homepage": "https://github.com/arekinath/node-sshpk-agent#readme",
   "dependencies": {
     "assert-plus": "0.1.5",
-    "sshpk": ">=1.0.0 <2.0.0",
+    "sshpk": "git+https://github.com/arekinath/node-sshpk#master",
     "readable-stream": ">=2.0.0 <3.0.0"
   },
   "devDependencies": {
