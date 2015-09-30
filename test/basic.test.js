@@ -25,9 +25,9 @@ test('setup', function (t) {
 	t.end();
 });
 
-test('AgentClient throws with no socket', function (t) {
+test('Client throws with no socket', function (t) {
 	t.throws(function () {
-		new sshpkAgent.AgentClient();
+		new sshpkAgent.Client();
 	});
 	t.end();
 });
@@ -44,23 +44,23 @@ test('agent setup', function (t) {
 	});
 });
 
-test('AgentClient takes path to socket in constructor', function (t) {
-	var c = new sshpkAgent.AgentClient({
+test('Client takes path to socket in constructor', function (t) {
+	var c = new sshpkAgent.Client({
 		socketPath: agent.env['SSH_AUTH_SOCK']
 	});
 	t.ok(c);
 	t.end();
 });
 
-test('AgentClient takes path to socket from environment', function (t) {
+test('Client takes path to socket from environment', function (t) {
 	agent.importEnv();
-	var c = new sshpkAgent.AgentClient();
+	var c = new sshpkAgent.Client();
 	t.ok(c);
 	t.end();
 });
 
-test('AgentClient can connect', function (t) {
-	var c = new sshpkAgent.AgentClient();
+test('Client can connect', function (t) {
+	var c = new sshpkAgent.Client();
 	c.connect(function () {
 		t.ok(c);
 		t.strictEqual(c.state, 'connected');
@@ -68,8 +68,8 @@ test('AgentClient can connect', function (t) {
 	});
 });
 
-test('AgentClient can list keys when empty', function (t) {
-	var c = new sshpkAgent.AgentClient();
+test('Client can list keys when empty', function (t) {
+	var c = new sshpkAgent.Client();
 	c.listKeys(function (err, keys) {
 		t.error(err);
 		t.ok(keys instanceof Array);
@@ -78,8 +78,8 @@ test('AgentClient can list keys when empty', function (t) {
 	});
 });
 
-test('AgentClient can list keys with one key loaded', function (t) {
-	var c = new sshpkAgent.AgentClient();
+test('Client can list keys with one key loaded', function (t) {
+	var c = new sshpkAgent.Client();
 	agent.addKey(path.join(testDir, 'id_rsa'), function (err) {
 		t.error(err);
 		c.listKeys(function (err, keys) {
@@ -96,8 +96,8 @@ test('AgentClient can list keys with one key loaded', function (t) {
 	});
 });
 
-test('AgentClient can list multiple keys', function (t) {
-	var c = new sshpkAgent.AgentClient();
+test('Client can list multiple keys', function (t) {
+	var c = new sshpkAgent.Client();
 	agent.addKey(path.join(testDir, 'id_ecdsa'), function (err) {
 		t.error(err);
 		c.listKeys(function (err, keys) {
@@ -113,8 +113,8 @@ test('AgentClient can list multiple keys', function (t) {
 	});
 });
 
-test('AgentClient can re-use connection', function (t) {
-	var c = new sshpkAgent.AgentClient();
+test('Client can re-use connection', function (t) {
+	var c = new sshpkAgent.Client();
 	c.listKeys(function (err, keys) {
 		t.error(err);
 		t.strictEqual(c.state, 'connected');
@@ -125,8 +125,8 @@ test('AgentClient can re-use connection', function (t) {
 	})
 });
 
-test('AgentClient queues up requests', function (t) {
-	var c = new sshpkAgent.AgentClient();
+test('Client queues up requests', function (t) {
+	var c = new sshpkAgent.Client();
 	var n = 0;
 
 	function callback(err, keys) {
@@ -139,8 +139,8 @@ test('AgentClient queues up requests', function (t) {
 		c.listKeys(callback);
 });
 
-test('AgentClient can\'t sign with an unknown key', function (t) {
-	var c = new sshpkAgent.AgentClient();
+test('Client can\'t sign with an unknown key', function (t) {
+	var c = new sshpkAgent.Client();
 	var key = sshpk.parseKey(
 	    fs.readFileSync(path.join(testDir, 'id_ecdsa2')), 'pem');
 	c.sign(key, 'foobar', function (err, sig) {
@@ -150,8 +150,8 @@ test('AgentClient can\'t sign with an unknown key', function (t) {
 	});
 });
 
-test('AgentClient can sign data with an rsa key', function (t) {
-	var c = new sshpkAgent.AgentClient();
+test('Client can sign data with an rsa key', function (t) {
+	var c = new sshpkAgent.Client();
 	c.listKeys(function (err, keys) {
 		t.error(err);
 
@@ -175,8 +175,8 @@ test('AgentClient can sign data with an rsa key', function (t) {
 	});
 });
 
-test('AgentClient can sign data with an ecdsa key', function (t) {
-	var c = new sshpkAgent.AgentClient();
+test('Client can sign data with an ecdsa key', function (t) {
+	var c = new sshpkAgent.Client();
 	c.listKeys(function (err, keys) {
 		t.error(err);
 
@@ -200,8 +200,8 @@ test('AgentClient can sign data with an ecdsa key', function (t) {
 	});
 });
 
-test('AgentClient can sign data with a dsa key', function (t) {
-	var c = new sshpkAgent.AgentClient();
+test('Client can sign data with a dsa key', function (t) {
+	var c = new sshpkAgent.Client();
 	agent.addKey(path.join(testDir, 'id_dsa'), function (err) {
 		t.error(err);
 
@@ -231,9 +231,9 @@ test('AgentClient can sign data with a dsa key', function (t) {
 
 var c, c2;
 
-test('pre-create AgentClients before stop/teardown', function (t) {
-	c = new sshpkAgent.AgentClient();
-	c2 = new sshpkAgent.AgentClient();
+test('pre-create Clients before stop/teardown', function (t) {
+	c = new sshpkAgent.Client();
+	c2 = new sshpkAgent.Client();
 	c.connect(function () {
 		t.end();
 	});
@@ -246,7 +246,7 @@ test('agent stop', function (t) {
 	});
 });
 
-test('connected AgentClient times out to stopped agent', function (t) {
+test('connected Client times out to stopped agent', function (t) {
 	c.listKeys({timeout: 1000}, function (err, keys) {
 		t.ok(err);
 		t.notStrictEqual(err.message.toLowerCase().
@@ -255,7 +255,7 @@ test('connected AgentClient times out to stopped agent', function (t) {
 	});
 });
 
-test('disconnected AgentClient can\'t connect to stopped agent', function (t) {
+test('disconnected Client can\'t connect to stopped agent', function (t) {
 	c2.listKeys({timeout: 1000}, function (err, keys) {
 		t.ok(err);
 		t.end();
@@ -269,7 +269,7 @@ test('agent resume', function (t) {
 	});
 });
 
-test('timed out AgentClient reconnects and works', function (t) {
+test('timed out Client reconnects and works', function (t) {
 	c.listKeys({timeout: 1000}, function (err, keys) {
 		t.error(err);
 		t.equal(keys.length, 3);
@@ -277,7 +277,7 @@ test('timed out AgentClient reconnects and works', function (t) {
 	});
 });
 
-test('disconnected AgentClient reconnects and works', function (t) {
+test('disconnected Client reconnects and works', function (t) {
 	c2.listKeys({timeout: 1000}, function (err, keys) {
 		t.error(err);
 		t.equal(keys.length, 3);

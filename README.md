@@ -16,12 +16,42 @@ npm install sshpk-agent
 Examples
 --------
 
-TODO.
+```js
+var agent = require('sshpk-agent');
+var sshpk = require('sshpk');
+
+var client = new agent.Client();
+
+/* Add a new key to the agent */
+var pk = sshpk.parsePrivateKey(fs.readFileSync('id_rsa'), 'pem');
+client.addKey(pk, function (err) {
+  ...
+});
+
+/* List all the keys stored in the agent */
+var key;
+client.listKeys(function (err, keys) {
+  if (err)
+    return;
+  /* keys is an array of sshpk.Key objects */
+  key = keys[0];
+});
+
+/* Sign some data with a key */
+var data = 'foobar';
+client.sign(key, data, function (err, signature) {
+  /* signature is an sshpk.Signature object */
+  ...
+  /* to find out what hash algorithm the agent used -- it chooses for you */
+  var algo = signature.hashAlgorithm;
+  ...
+});
+```
 
 Usage
 -----
 
-### `new AgentClient([options]);`
+### `new Client([options]);`
 
 Creates a new ssh-agent client.
 
@@ -34,7 +64,7 @@ Parameters
   - `timeout` -- an optional Number, milliseconds to wait for the agent to
                  respond to a request before returning error. Defaults to 2000.
 
-### `AgentClient#listKeys([options, ]callback);`
+### `Client#listKeys([options, ]callback);`
 
 Retrieves a list of all keys stored in the agent.
 
@@ -48,7 +78,7 @@ Parameters
                subclasses
   - `keys` -- Array of `sshpk.Key` objects, the available public keys
 
-### `AgentClient#sign(key, data[, options], callback);`
+### `Client#sign(key, data[, options], callback);`
 
 Uses a key stored in the agent to sign some data.
 
@@ -63,7 +93,7 @@ Parameters
   - `error` -- null if no error, otherwise instance of `Error`
   - `signature` -- an Object, instance of `sshpk.Signature`
 
-### `AgentClient#addKey(privkey[, options], callback);`
+### `Client#addKey(privkey[, options], callback);`
 
 Adds a new private key to the agent.
 
@@ -78,7 +108,7 @@ Parameters
 - `callback` -- function `(error)` with arguments:
   - `error` -- null if no error, otherwise instance of `Error`
 
-### `AgentClient#removeKey(key[, options], callback);`
+### `Client#removeKey(key[, options], callback);`
 
 Removes a private key from the agent.
 
@@ -91,7 +121,7 @@ Parameters
 - `callback` -- function `(error)` with arguments:
   - `error` -- null if no error, otherwise instance of `Error`
 
-### `AgentClient#removeAllKeys([options, ]callback);`
+### `Client#removeAllKeys([options, ]callback);`
 
 Removes all private keys from the agent.
 
@@ -103,7 +133,7 @@ Parameters
 - `callback` -- function `(error)` with arguments:
   - `error` -- null if no error, otherwise instance of `Error`
 
-### `AgentClient#lock(password[, options], callback);`
+### `Client#lock(password[, options], callback);`
 
 Locks the agent with a password, causing it to respond with failure to all
 requests (except a request to list keys, which always returns an empty list),
@@ -118,7 +148,7 @@ Parameters
 - `callback` -- function `(error)` with arguments:
   - `error` -- null if no error, otherwise instance of `Error`
 
-### `AgentClient#unlock(password[, options], callback);`
+### `Client#unlock(password[, options], callback);`
 
 Unlocks an agent that has been previously locked. The given `password` must
 match the password used to lock the agent.

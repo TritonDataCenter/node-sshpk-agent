@@ -40,15 +40,15 @@ test('agent setup', function (t) {
 
 var client;
 
-test('AgentClient connect', function (t) {
-	client = new sshpkAgent.AgentClient();
+test('Client connect', function (t) {
+	client = new sshpkAgent.Client();
 	t.ok(client);
 	client.connect(function () {
 		t.end();
 	});
 });
 
-test('AgentClient can add an RSA key', function (t) {
+test('Client can add an RSA key', function (t) {
 	var pem = fs.readFileSync(path.join(testDir, 'id_rsa'));
 	var pk = sshpk.parsePrivateKey(pem, 'pem', 'test/id_rsaaaaa');
 	client.addKey(pk, function (err) {
@@ -64,7 +64,7 @@ test('AgentClient can add an RSA key', function (t) {
 	});
 });
 
-test('AgentClient can add a DSA key', function (t) {
+test('Client can add a DSA key', function (t) {
 	var pem = fs.readFileSync(path.join(testDir, 'id_dsa'));
 	var pk = sshpk.parsePrivateKey(pem, 'pem', 'test/id_dsa');
 	client.addKey(pk, function (err) {
@@ -80,7 +80,7 @@ test('AgentClient can add a DSA key', function (t) {
 	});
 });
 
-test('AgentClient can add an ECDSA key', function (t) {
+test('Client can add an ECDSA key', function (t) {
 	var pem = fs.readFileSync(path.join(testDir, 'id_ecdsa'));
 	var pk = sshpk.parsePrivateKey(pem, 'pem', 'test/id_ecdsa');
 	client.addKey(pk, function (err) {
@@ -96,7 +96,7 @@ test('AgentClient can add an ECDSA key', function (t) {
 	});
 });
 
-test('AgentClient can remove a key', function (t) {
+test('Client can remove a key', function (t) {
 	client.listKeys(function (err, keys) {
 		t.error(err);
 		t.equal(keys.length, 3);
@@ -113,7 +113,7 @@ test('AgentClient can remove a key', function (t) {
 	});
 });
 
-test('AgentClient can remove all keys', function (t) {
+test('Client can remove all keys', function (t) {
 	client.removeAllKeys(function (err) {
 		t.error(err);
 
@@ -125,7 +125,7 @@ test('AgentClient can remove all keys', function (t) {
 	});
 });
 
-test('AgentClient can lock the agent', function (t) {
+test('Client can lock the agent', function (t) {
 	client.lock('foobar', function (err) {
 		t.error(err);
 
@@ -139,7 +139,7 @@ test('AgentClient can lock the agent', function (t) {
 	});
 });
 
-test('AgentClient can unlock the agent', function (t) {
+test('Client can unlock the agent', function (t) {
 	client.unlock('foobar', function (err) {
 		t.error(err);
 
@@ -152,7 +152,7 @@ test('AgentClient can unlock the agent', function (t) {
 	});
 });
 
-test('AgentClient can add an expiring key', function (t) {
+test('Client can add an expiring key', function (t) {
 	var pem = fs.readFileSync(path.join(testDir, 'id_ecdsa'));
 	var pk = sshpk.parsePrivateKey(pem, 'pem', 'test/id_ecdsa');
 	client.addKey(pk, {expires: 2}, function (err) {
