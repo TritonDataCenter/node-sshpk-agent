@@ -1,6 +1,6 @@
 {
   "name": "sshpk-agent",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "ssh-agent client for use with sshpk",
   "main": "lib/index.js",
   "scripts": {
@@ -27,11 +27,8 @@
   "homepage": "https://github.com/arekinath/node-sshpk-agent#readme",
   "dependencies": {
     "assert-plus": ">=0.1.5 <0.2.0",
-    "sshpk": ">=1.4.4 <1.7",
+    "sshpk": ">=1.7.0 <1.8",
     "readable-stream": ">=2.0.0 <3.0.0"
-  },
-  "peerDependencies": {
-    "sshpk": ">=1.4.4 <1.7"
   },
   "devDependencies": {
     "tape": ">=3.5.0 <4.0.0",
