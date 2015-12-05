@@ -126,6 +126,31 @@ if (!process.version.match(/^v0\.[0-8]\./)) {
 			});
 		})
 	});
+
+	test('multiple requests while stopped', function (t) {
+		var resp = 0;
+		var sent = 0;
+		var c = new sshpkAgent.Client();
+		agent.signal('stop', function (err) {
+			t.error(err);
+
+			for (var i = 0; i < 10; ++i) {
+				++sent;
+				setTimeout(function () {
+					c.listKeys(function (err, keys) {
+						t.error(err);
+						if (++resp >= sent)
+							t.end();
+					});
+				}, i*50);
+			}
+			setTimeout(function () {
+				agent.signal('cont', function (err) {
+					t.error(err);
+				});
+			}, 250);
+		});
+	});
 }
 
 test('Client queues up requests', function (t) {
