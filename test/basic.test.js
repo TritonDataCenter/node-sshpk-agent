@@ -275,7 +275,7 @@ test('agent stop', function (t) {
 });
 
 test('connected Client times out to stopped agent', function (t) {
-	c.listKeys({timeout: 1000}, function (err, keys) {
+	c.listKeys({timeout: 500}, function (err, keys) {
 		t.ok(err);
 		t.notStrictEqual(err.message.toLowerCase().
 		    indexOf('timeout'), -1);
