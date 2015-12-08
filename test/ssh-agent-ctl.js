@@ -1,6 +1,7 @@
 // Copyright 2015 Joyent, Inc.  All rights reserved.
 
 var spawn = require('child_process').spawn;
+var spawnSync = require('child_process').spawnSync;
 var util = require('util');
 var EventEmitter = require('events').EventEmitter;
 var assert = require('assert-plus');
@@ -16,6 +17,16 @@ function Agent(opts) {
     this.open();
 }
 util.inherits(Agent, EventEmitter);
+
+Agent.getVersion = function () {
+    var kid = spawnSync('ssh', ['-V']);
+    var out = kid.stderr;
+    if (Buffer.isBuffer(out))
+        out = out.toString('ascii');
+    var m = out.trim().match(/^OpenSSH_([0-9]+)\.([0-9]+)p([0-9]+),/);
+    assert.ok(m);
+    return ([parseInt(m[1], 10), parseInt(m[2], 10), parseInt(m[3], 10)]);
+};
 
 Agent.prototype.open = function () {
     assert.strictEqual(this.state, undefined, 'agent already opened');
