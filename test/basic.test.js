@@ -234,8 +234,12 @@ test('Client can sign data with an ecdsa key', function (t) {
 
 var usedEd = false;
 var ver = Agent.getVersion();
-console.log('using OpenSSH version %d.%dp%d', ver[0], ver[1], ver[2]);
-if (ver >= [6, 9, 1]) {
+if (ver === undefined)
+	ver = [0, 0, 0];
+else
+	console.log('using OpenSSH version %d.%dp%d', ver[0], ver[1], ver[2]);
+
+if (ver >= [6, 5, 1]) {
 	usedEd = true;
 	test('Client can sign data with an ed25519 key', function (t) {
 		var c = new sshpkAgent.Client();
@@ -264,6 +268,8 @@ if (ver >= [6, 9, 1]) {
 			});
 		});
 	});
+} else {
+	console.log('WARNING: ed25519 tests disabled: your OpenSSH is too old');
 }
 
 test('Client can sign data with a dsa key', function (t) {

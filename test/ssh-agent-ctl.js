@@ -19,12 +19,18 @@ function Agent(opts) {
 util.inherits(Agent, EventEmitter);
 
 Agent.getVersion = function () {
+    if (typeof (spawnSync) !== 'function')
+        return (undefined);
+
     var kid = spawnSync('ssh', ['-V']);
     var out = kid.stderr;
     if (Buffer.isBuffer(out))
         out = out.toString('ascii');
-    var m = out.trim().match(/^OpenSSH_([0-9]+)\.([0-9]+)p([0-9]+),/);
-    assert.ok(m);
+    var m = out.trim().match(/^OpenSSH_([0-9]+)\.([0-9]+)p([0-9]+)[, ]|$/);
+    if (!m) {
+        console.error('ssh -V: %s', out);
+        return (undefined);
+    }
     return ([parseInt(m[1], 10), parseInt(m[2], 10), parseInt(m[3], 10)]);
 };
 
