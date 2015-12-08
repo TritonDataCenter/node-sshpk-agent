@@ -61,9 +61,11 @@ test('Client takes path to socket from environment', function (t) {
 
 test('Client can connect', function (t) {
 	var c = new sshpkAgent.Client();
+	c.ref();
 	c.connect(function () {
 		t.ok(c);
-		t.strictEqual(c.state, 'connected');
+		t.ok(/^connected($|[.])/.test(c.getState()));
+		c.unref();
 		t.end();
 	});
 });
@@ -119,7 +121,7 @@ if (!process.version.match(/^v0\.[0-8]\./)) {
 		var c = new sshpkAgent.Client();
 		c.listKeys(function (err, keys) {
 			t.error(err);
-			t.strictEqual(c.state, 'connected');
+			t.strictEqual(c.getState(), 'connected.busy');
 			c.listKeys(function (err2, keys2) {
 				t.error(err2);
 				t.end();
@@ -290,10 +292,15 @@ test('disconnected Client can\'t connect to stopped agent', function (t) {
 	});
 });
 
-test('agent resume', function (t) {
+test('agent resume, client recovers from a socket error', function (t) {
+	c.listKeys({timeout: 500}, function (err, keys) {
+		t.error(err);
+		t.equal(keys.length, 3);
+		t.end();
+	});
+	c.c_socket.emit('error', new Error('dummy error'));
 	agent.signal('cont', function (err) {
 		t.error(err);
-		t.end();
 	});
 });
 
