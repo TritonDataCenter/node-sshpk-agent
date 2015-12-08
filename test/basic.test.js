@@ -18,6 +18,8 @@ var ID_ECDSA_FP = sshpk.parseFingerprint(
     'SHA256:e34c67Npv31uMtfVUEBJln5aOcJugzDaYGsj1Uph5DE');
 var ID_DSA_FP = sshpk.parseFingerprint(
     'SHA256:PCfwpK62grBWrAJceLetSNv9CTrX8yoD0miKf11DBG8');
+var ID_ED25519_FP = sshpk.parseFingerprint(
+    'SHA256:Mu6PkebM4ksg1M+dmhz+vw7gYPrKzeO2bCVqIEKKsis');
 
 test('setup', function (t) {
 	delete (process.env['SSH_AGENT_PID']);
@@ -230,6 +232,34 @@ test('Client can sign data with an ecdsa key', function (t) {
 	});
 });
 
+test('Client can sign data with an ed25519 key', function (t) {
+	var c = new sshpkAgent.Client();
+	agent.addKey(path.join(testDir, 'id_ed25519'), function (err) {
+		t.error(err);
+		c.listKeys(function (err, keys) {
+			t.error(err);
+
+			var key = keys[2];
+			t.strictEqual(key.type, 'ed25519');
+			t.ok(ID_ED25519_FP.matches(key));
+
+			c.sign(key, 'foobar', function (err, sig) {
+				t.error(err);
+				t.ok(sig);
+				t.ok(sig instanceof sshpk.Signature);
+
+				t.strictEqual(sig.hashAlgorithm, 'sha512');
+
+				var v = key.createVerify('sha512');
+				v.update('foobar');
+				t.ok(v.verify(sig));
+
+				t.end();
+			});
+		});
+	});
+});
+
 test('Client can sign data with a dsa key', function (t) {
 	var c = new sshpkAgent.Client();
 	agent.addKey(path.join(testDir, 'id_dsa'), function (err) {
@@ -238,7 +268,7 @@ test('Client can sign data with a dsa key', function (t) {
 		c.listKeys(function (err, keys) {
 			t.error(err);
 
-			var key = keys[2];
+			var key = keys[3];
 			t.strictEqual(key.type, 'dsa');
 			t.ok(ID_DSA_FP.matches(key));
 
@@ -295,7 +325,7 @@ test('disconnected Client can\'t connect to stopped agent', function (t) {
 test('agent resume, client recovers from a socket error', function (t) {
 	c.listKeys({timeout: 500}, function (err, keys) {
 		t.error(err);
-		t.equal(keys.length, 3);
+		t.equal(keys.length, 4);
 		t.end();
 	});
 	c.c_socket.emit('error', new Error('dummy error'));
@@ -307,7 +337,7 @@ test('agent resume, client recovers from a socket error', function (t) {
 test('timed out Client reconnects and works', function (t) {
 	c.listKeys({timeout: 1000}, function (err, keys) {
 		t.error(err);
-		t.equal(keys.length, 3);
+		t.equal(keys.length, 4);
 		t.end();
 	});
 });
@@ -315,7 +345,7 @@ test('timed out Client reconnects and works', function (t) {
 test('disconnected Client reconnects and works', function (t) {
 	c2.listKeys({timeout: 1000}, function (err, keys) {
 		t.error(err);
-		t.equal(keys.length, 3);
+		t.equal(keys.length, 4);
 		t.end();
 	});
 });
