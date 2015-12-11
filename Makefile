@@ -18,7 +18,7 @@
 # Tools
 #
 NPM_EXEC        := npm
-TAP		:= ./node_modules/.bin/tap
+TAP		:= ./node_modules/.bin/tape
 
 #
 # Files
