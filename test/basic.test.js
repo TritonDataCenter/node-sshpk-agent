@@ -117,6 +117,31 @@ test('Client can list multiple keys', function (t) {
 	});
 });
 
+test('Client can list certificates', function (t) {
+	var c = new sshpkAgent.Client();
+	agent.addKey(path.join(testDir, 'id_ecdsa3'), function (err) {
+		t.error(err);
+		c.listKeys(function (err, keys) {
+			t.error(err);
+			t.ok(keys instanceof Array);
+			t.equal(keys.length, 3);
+
+			c.listCertificates(function (err, certs) {
+				t.error(err);
+				t.ok(Array.isArray(certs));
+				t.equal(certs.length, 1);
+
+				var s = certs[0].subjects[0];
+				t.strictEqual(s.type, 'host');
+				t.strictEqual(s.hostname, 'foobar.com');
+				t.strictEqual(certs[0].subjectKey.type,
+				    'ecdsa');
+				t.end();
+			});
+		})
+	});
+});
+
 /* Connection re-use disabled on node 0.8 because it lacks unref() */
 if (!process.version.match(/^v0\.[0-8]\./)) {
 	test('Client can re-use connection', function (t) {
@@ -248,7 +273,7 @@ if (ver >= [6, 5, 1]) {
 			c.listKeys(function (err, keys) {
 				t.error(err);
 
-				var key = keys[2];
+				var key = keys[3];
 				t.strictEqual(key.type, 'ed25519');
 				t.ok(ID_ED25519_FP.matches(key));
 
@@ -280,7 +305,7 @@ test('Client can sign data with a dsa key', function (t) {
 		c.listKeys(function (err, keys) {
 			t.error(err);
 
-			var key = keys[usedEd ? 3 : 2];
+			var key = keys[usedEd ? 4 : 3];
 			t.strictEqual(key.type, 'dsa');
 			t.ok(ID_DSA_FP.matches(key));
 
@@ -337,7 +362,7 @@ test('disconnected Client can\'t connect to stopped agent', function (t) {
 test('agent resume, client recovers from a socket error', function (t) {
 	c.listKeys({timeout: 500}, function (err, keys) {
 		t.error(err);
-		t.equal(keys.length, usedEd ? 4 : 3);
+		t.equal(keys.length, usedEd ? 5 : 4);
 		t.end();
 	});
 	c.c_socket.emit('error', new Error('dummy error'));
@@ -349,7 +374,7 @@ test('agent resume, client recovers from a socket error', function (t) {
 test('timed out Client reconnects and works', function (t) {
 	c.listKeys({timeout: 1000}, function (err, keys) {
 		t.error(err);
-		t.equal(keys.length, usedEd ? 4 : 3);
+		t.equal(keys.length, usedEd ? 5 : 4);
 		t.end();
 	});
 });
@@ -357,7 +382,7 @@ test('timed out Client reconnects and works', function (t) {
 test('disconnected Client reconnects and works', function (t) {
 	c2.listKeys({timeout: 1000}, function (err, keys) {
 		t.error(err);
-		t.equal(keys.length, usedEd ? 4 : 3);
+		t.equal(keys.length, usedEd ? 5 : 4);
 		t.end();
 	});
 });

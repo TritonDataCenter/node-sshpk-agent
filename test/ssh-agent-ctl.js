@@ -46,6 +46,7 @@ Agent.prototype.open = function () {
     kid.stderr.on('data', function (chunk) {
         errBuf += chunk.toString('ascii');
     });
+    kid.stderr.pipe(process.stderr);
     kid.stdout.on('data', function (chunk) {
         buf += chunk.toString('ascii');
         var lines = buf.split('\n');

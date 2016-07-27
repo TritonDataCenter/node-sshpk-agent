@@ -78,6 +78,20 @@ Parameters
                subclasses
   - `keys` -- Array of `sshpk.Key` objects, the available public keys
 
+### `Client#listCertificates([options, ]callback);`
+
+Retrieves a list of all certificates stored in the agent.
+
+Parameters
+
+- `options` -- optional Object, containg properties:
+  - `timeout` -- an optional Number, overrides the constructor timeout just for
+                 this request
+- `callback` -- function `(error, keys)` with arguments:
+  - `error` -- null if no error, otherwise an instance of `Error` or its
+               subclasses
+  - `keys` -- Array of `sshpk.Certificate` objects, the available certificates
+
 ### `Client#sign(key, data[, options], callback);`
 
 Uses a key stored in the agent to sign some data.
@@ -100,6 +114,23 @@ Adds a new private key to the agent.
 Parameters
 
 - `privkey` -- an Object, instance of `sshpk.PrivateKey`, key to add
+- `options` -- optional Object, containing properties:
+  - `expires` -- optional Number, seconds until this key expires. If not given,
+                 key will last indefinitely. Expiry is handled by the agent
+                 itself.
+  - `timeout` -- optional Number, overrides the constructor timeout
+- `callback` -- function `(error)` with arguments:
+  - `error` -- null if no error, otherwise instance of `Error`
+
+### `Client#addCertificate(cert, privkey[, options], callback);`
+
+Adds a new certificate and private key pair to the agent.
+
+Parameters
+
+- `cert` -- an Object, instance of `sshpk.Certificate`, cert to add
+- `privkey` -- an Object, instance of `sshpk.PrivateKey`, subject private key
+               of the certificate
 - `options` -- optional Object, containing properties:
   - `expires` -- optional Number, seconds until this key expires. If not given,
                  key will last indefinitely. Expiry is handled by the agent
