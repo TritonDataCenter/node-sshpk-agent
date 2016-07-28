@@ -152,34 +152,47 @@ test('Client can add an ECDSA certificate', function (t) {
 	});
 });
 
-test('Client can add an ED25519 certificate', function (t) {
-	var pem = fs.readFileSync(path.join(testDir, 'id_ed25519'));
-	var pk = sshpk.parsePrivateKey(pem, 'pem', 'test/id_ed25519');
-	var id = sshpk.identityForHost('testing.ed25519');
-	var cert = sshpk.createSelfSignedCertificate(id, pk);
-	client.addCertificate(cert, pk, function (err) {
-		t.error(err);
+var ver = Agent.getVersion();
+if (ver === undefined)
+	ver = [0, 0, 0];
+else
+	console.log('using OpenSSH version %d.%dp%d', ver[0], ver[1], ver[2]);
 
-		client.listKeys(function (err, keys) {
+if (ver >= [6, 5, 1]) {
+	test('Client can add an ED25519 certificate', function (t) {
+		var pem = fs.readFileSync(path.join(testDir, 'id_ed25519'));
+		var pk = sshpk.parsePrivateKey(pem, 'pem', 'test/id_ed25519');
+		var id = sshpk.identityForHost('testing.ed25519');
+		var cert = sshpk.createSelfSignedCertificate(id, pk);
+		client.addCertificate(cert, pk, function (err) {
 			t.error(err);
-			t.equal(keys.length, 3);
 
-			client.listCertificates(function (err2, certs) {
-				t.error(err2);
-				t.equal(certs.length, 3);
-				t.strictEqual(certs[2].subjects[0].type,
-				    'host');
-				t.strictEqual(certs[2].subjects[0].hostname,
-				    'testing.ed25519');
-				t.strictEqual(certs[2].subjectKey.type,
-				    'ed25519');
-				t.ok(ID_ED25519_FP.matches(certs[2].subjectKey),
-				    'fingerprint matches cert key');
-				t.end();
+			client.listKeys(function (err, keys) {
+				t.error(err);
+				t.equal(keys.length, 3);
+
+				client.listCertificates(function (err2, certs) {
+					t.error(err2);
+					t.equal(certs.length, 3);
+					t.strictEqual(
+					    certs[2].subjects[0].type,
+					    'host');
+					t.strictEqual(
+					     certs[2].subjects[0].hostname,
+					    'testing.ed25519');
+					t.strictEqual(certs[2].subjectKey.type,
+					    'ed25519');
+					t.ok(ID_ED25519_FP.matches(
+					    certs[2].subjectKey),
+					    'fingerprint matches cert key');
+					t.end();
+				});
 			});
 		});
 	});
-});
+} else {
+	console.log('WARNING: ed25519 tests disabled: your OpenSSH is too old');
+}
 
 test('Client can remove a key', function (t) {
 	client.listKeys(function (err, keys) {
