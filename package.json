@@ -1,6 +1,6 @@
 {
   "name": "sshpk-agent",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "ssh-agent client for use with sshpk",
   "main": "lib/index.js",
   "scripts": {

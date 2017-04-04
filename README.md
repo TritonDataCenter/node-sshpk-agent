@@ -107,6 +107,52 @@ Parameters
   - `error` -- null if no error, otherwise instance of `Error`
   - `signature` -- an Object, instance of `sshpk.Signature`
 
+### `Client#createSelfSignedCertificate(subject, key, options, cb)`
+
+Uses a key stored in the agent to create a self-signed certificate for that
+key. The certificate can be read back in both OpenSSH and X.509 formats.
+
+Parameters
+
+ - `subject` -- an Identity, the subject of the certificate
+ - `key` -- an Object, instance of `sshpk.Key`, key to sign with and the
+   subject key
+ - `options` -- an Object, additional options, with keys:
+   - `lifetime` -- optional Number, lifetime of the certificate from now in
+     seconds
+   - `validFrom`, `validUntil` -- optional Dates, beginning and end of
+     certificate validity period. If given, `lifetime` will be ignored.
+   - `serial` -- optional Buffer, the serial number of the certificate
+   - `purposes` -- optional Array of String, X.509 key usage restrictions
+ - `callback` -- function `(error, certificate)`, with arguments:
+   - `error` -- null if no error, otherwise instance of `Error`
+   - `certificate` -- an Object, instance of `sshpk.Certificate`
+
+### `Client#createCertificate(subject, subjectKey, issuer, key, options, cb)`
+
+Uses a key stored in the agent to create and sign a certificate for some other
+key (not necessarily in the agent). The certificate can be read back in both
+OpenSSH and X.509 formats.
+
+Parameters
+
+ - `subject` -- an Identity, the subject of the certificate
+ - `subjectKey` -- an Object, instance of `sshpk.Key`, key of the subject
+   entity (does not have to reside in the agent)
+ - `issuer` -- an Identity, the issuer of the certificate
+ - `key` -- an Object, instance of `sshpk.Key`, key to sign with (must be in
+   the agent, and match up with the `issuer` identity)
+ - `options` -- an Object, additional options, with keys:
+   - `lifetime` -- optional Number, lifetime of the certificate from now in
+     seconds
+   - `validFrom`, `validUntil` -- optional Dates, beginning and end of
+     certificate validity period. If given, `lifetime` will be ignored.
+   - `serial` -- optional Buffer, the serial number of the certificate
+   - `purposes` -- optional Array of String, X.509 key usage restrictions
+ - `callback` -- function `(error, certificate)`, with arguments:
+   - `error` -- null if no error, otherwise instance of `Error`
+   - `certificate` -- an Object, instance of `sshpk.Certificate`
+
 ### `Client#addKey(privkey[, options], callback);`
 
 Adds a new private key to the agent.

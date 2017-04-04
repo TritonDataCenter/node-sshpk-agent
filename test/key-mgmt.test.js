@@ -98,37 +98,51 @@ test('Client can add an ECDSA key', function (t) {
 	});
 });
 
-test('Client can add an RSA certificate', function (t) {
-	var pem = fs.readFileSync(path.join(testDir, 'id_rsa'));
-	var pk = sshpk.parsePrivateKey(pem, 'pem', 'test/id_rsa');
-	var id = sshpk.identityForHost('testing.rsa');
-	var cert = sshpk.createSelfSignedCertificate(id, pk);
-	client.addCertificate(cert, pk, function (err) {
-		t.error(err);
-
-		client.listKeys(function (err, keys) {
-			t.error(err);
-			t.equal(keys.length, 3);
-
-			client.listCertificates(function (err2, certs) {
-				t.error(err2);
-				t.equal(certs.length, 1);
-				t.strictEqual(certs[0].subjects[0].type,
-				    'host');
-				t.strictEqual(certs[0].subjects[0].hostname,
-				    'testing.rsa');
-				t.ok(ID_RSA_FP.matches(certs[0].subjectKey),
-				    'fingerprint matches cert key');
-				t.end();
-			});
-		});
-	});
-});
-
 var ver = Agent.getVersion();
 if (!ver.zero()) {
 	console.log('using OpenSSH version ' + ver);
 }
+
+test('Client can add an RSA certificate', function (t) {
+	var pem = fs.readFileSync(path.join(testDir, 'id_rsa'));
+	var pk = sshpk.parsePrivateKey(pem, 'pem', 'test/id_rsa');
+	var pubk = pk.toPublic();
+	var id = sshpk.identityForHost('testing.rsa');
+	var opts = {};
+
+	client.createSelfSignedCertificate(id, pubk, opts,
+	    function (err, cert) {
+		t.error(err);
+		t.ok(cert);
+
+		if (ver >= [7, 0, 1]) {
+			var sig = cert.signatures.x509.signature;
+			t.strictEqual(sig.hashAlgorithm, 'sha256');
+		}
+
+		client.addCertificate(cert, pk, function (err) {
+			t.error(err);
+
+			client.listKeys(function (err, keys) {
+				t.error(err);
+				t.equal(keys.length, 3);
+
+				client.listCertificates(function (err2, certs) {
+					t.error(err2);
+					t.equal(certs.length, 1);
+					t.strictEqual(
+					    certs[0].subjects[0].type, 'host');
+					t.strictEqual(
+					    certs[0].subjects[0].hostname,
+					    'testing.rsa');
+					t.ok(certs[0].isSignedByKey(pubk),
+					    'valid signature');
+					t.end();
+				});
+			});
+		});
+	});
+});
 
 test('Client can add an ECDSA certificate', function (t) {
 	var pem = fs.readFileSync(path.join(testDir, 'id_ecdsa'));

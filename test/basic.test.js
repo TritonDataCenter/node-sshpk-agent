@@ -267,6 +267,77 @@ test('Client can sign data with an ecdsa key', function (t) {
 	});
 });
 
+test('Client can create rsa certificates', function (t) {
+	var c = new sshpkAgent.Client();
+	c.listKeys(function (err, keys) {
+		t.error(err);
+
+		var key = keys[0];
+		t.strictEqual(key.type, 'rsa');
+		t.ok(ID_RSA_FP.matches(key));
+
+		var id = sshpk.identityForHost('foo.com');
+		var opts = {};
+		c.createSelfSignedCertificate(id, key, opts,
+		    function (err, cert) {
+			t.error(err);
+			t.ok(cert);
+			t.ok(cert instanceof sshpk.Certificate);
+
+			t.strictEqual(cert.subjects[0].hostname, 'foo.com');
+			t.ok(cert.isSignedByKey(key));
+
+			if (ver >= [7, 0, 1]) {
+				var sig = cert.signatures.x509.signature;
+				t.strictEqual(sig.hashAlgorithm, 'sha256');
+			}
+
+			var ssh = cert.toBuffer('openssh');
+			var cert2 = sshpk.parseCertificate(ssh, 'openssh');
+			t.ok(cert2.isSignedByKey(key));
+
+			var pem = cert.toBuffer('pem');
+			var cert3 = sshpk.parseCertificate(pem, 'pem');
+			t.ok(cert3.isSignedByKey(key));
+
+			t.end();
+		});
+	});
+});
+
+test('Client can create ecdsa certificates', function (t) {
+	var c = new sshpkAgent.Client();
+	c.listKeys(function (err, keys) {
+		t.error(err);
+
+		var key = keys[1];
+		t.strictEqual(key.type, 'ecdsa');
+		t.ok(ID_ECDSA_FP.matches(key));
+
+		var id = sshpk.identityForHost('foobar.com');
+		var opts = {};
+		c.createSelfSignedCertificate(id, key, opts,
+		    function (err, cert) {
+			t.error(err);
+			t.ok(cert);
+			t.ok(cert instanceof sshpk.Certificate);
+
+			t.strictEqual(cert.subjects[0].hostname, 'foobar.com');
+			t.ok(cert.isSignedByKey(key));
+
+			var ssh = cert.toBuffer('openssh');
+			var cert2 = sshpk.parseCertificate(ssh, 'openssh');
+			t.ok(cert2.isSignedByKey(key));
+
+			var pem = cert.toBuffer('pem');
+			var cert3 = sshpk.parseCertificate(pem, 'pem');
+			t.ok(cert3.isSignedByKey(key));
+
+			t.end();
+		});
+	});
+});
+
 var usedEd = false;
 
 if (ver.gte(6, 5, 1)) {
