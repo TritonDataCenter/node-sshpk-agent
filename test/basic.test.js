@@ -46,6 +46,11 @@ test('agent setup', function (t) {
 	});
 });
 
+var ver = Agent.getVersion();
+if (!ver.zero()) {
+	console.log('using OpenSSH version ' + ver);
+}
+
 test('Client takes path to socket in constructor', function (t) {
 	var c = new sshpkAgent.Client({
 		socketPath: agent.env['SSH_AUTH_SOCK']
@@ -221,9 +226,14 @@ test('Client can sign data with an rsa key', function (t) {
 			t.ok(sig);
 			t.ok(sig instanceof sshpk.Signature);
 
-			t.strictEqual(sig.hashAlgorithm, 'sha1');
+			t.notStrictEqual(sig.hashAlgorithm, undefined);
+			if (ver.gte(7, 0, 1)) {
+				t.strictEqual(sig.hashAlgorithm, 'sha256');
+			} else {
+				t.strictEqual(sig.hashAlgorithm, 'sha1');
+			}
 
-			var v = key.createVerify('sha1');
+			var v = key.createVerify(sig.hashAlgorithm);
 			v.update('foobar');
 			t.ok(v.verify(sig));
 
@@ -246,9 +256,9 @@ test('Client can sign data with an ecdsa key', function (t) {
 			t.ok(sig);
 			t.ok(sig instanceof sshpk.Signature);
 
-			t.strictEqual(sig.hashAlgorithm, 'sha384');
+			t.notStrictEqual(sig.hashAlgorithm, undefined);
 
-			var v = key.createVerify('sha384');
+			var v = key.createVerify(sig.hashAlgorithm);
 			v.update('foobar');
 			t.ok(v.verify(sig));
 
@@ -258,13 +268,8 @@ test('Client can sign data with an ecdsa key', function (t) {
 });
 
 var usedEd = false;
-var ver = Agent.getVersion();
-if (ver === undefined)
-	ver = [0, 0, 0];
-else
-	console.log('using OpenSSH version %d.%dp%d', ver[0], ver[1], ver[2]);
 
-if (ver >= [6, 5, 1]) {
+if (ver.gte(6, 5, 1)) {
 	usedEd = true;
 	test('Client can sign data with an ed25519 key', function (t) {
 		var c = new sshpkAgent.Client();
@@ -282,9 +287,11 @@ if (ver >= [6, 5, 1]) {
 					t.ok(sig);
 					t.ok(sig instanceof sshpk.Signature);
 
-					t.strictEqual(sig.hashAlgorithm, 'sha512');
+					t.notStrictEqual(sig.hashAlgorithm,
+					    undefined);
 
-					var v = key.createVerify('sha512');
+					var v = key.createVerify(
+					    sig.hashAlgorithm);
 					v.update('foobar');
 					t.ok(v.verify(sig));
 
@@ -314,9 +321,9 @@ test('Client can sign data with a dsa key', function (t) {
 				t.ok(sig);
 				t.ok(sig instanceof sshpk.Signature);
 
-				t.strictEqual(sig.hashAlgorithm, 'sha1');
+				t.notStrictEqual(sig.hashAlgorithm, undefined);
 
-				var v = key.createVerify('sha1');
+				var v = key.createVerify(sig.hashAlgorithm);
 				v.update('foobar');
 				t.ok(v.verify(sig));
 

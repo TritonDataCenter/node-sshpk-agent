@@ -125,6 +125,11 @@ test('Client can add an RSA certificate', function (t) {
 	});
 });
 
+var ver = Agent.getVersion();
+if (!ver.zero()) {
+	console.log('using OpenSSH version ' + ver);
+}
+
 test('Client can add an ECDSA certificate', function (t) {
 	var pem = fs.readFileSync(path.join(testDir, 'id_ecdsa'));
 	var pk = sshpk.parsePrivateKey(pem, 'pem', 'test/id_ecdsa');
@@ -152,13 +157,7 @@ test('Client can add an ECDSA certificate', function (t) {
 	});
 });
 
-var ver = Agent.getVersion();
-if (ver === undefined)
-	ver = [0, 0, 0];
-else
-	console.log('using OpenSSH version %d.%dp%d', ver[0], ver[1], ver[2]);
-
-if (ver >= [6, 5, 1]) {
+if (ver.gte(6, 5, 1)) {
 	test('Client can add an ED25519 certificate', function (t) {
 		var pem = fs.readFileSync(path.join(testDir, 'id_ed25519'));
 		var pk = sshpk.parsePrivateKey(pem, 'pem', 'test/id_ed25519');

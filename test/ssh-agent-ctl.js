@@ -18,6 +18,29 @@ function Agent(opts) {
 }
 util.inherits(Agent, EventEmitter);
 
+function SSHVersion(maj, min, patch) {
+    this.major = maj;
+    this.minor = min;
+    this.patch = patch;
+}
+SSHVersion.prototype.gte = function (maj, min, patch) {
+    var v;
+    if (maj instanceof SSHVersion)
+        v = maj;
+    else
+        v = new SSHVersion(maj, min, patch);
+
+    return (this.major > v.major ||
+        (this.major == v.major && (this.minor > v.minor ||
+        (this.minor == v.minor && this.patch >= v.patch))));
+};
+SSHVersion.prototype.zero = function () {
+    return (this.major == 0 && this.minor == 0 && this.patch == 0);
+};
+SSHVersion.prototype.toString = function () {
+    return (this.major + '.' + this.minor + 'p' + this.patch);
+};
+
 Agent.getVersion = function () {
     if (typeof (spawnSync) !== 'function')
         return (undefined);
@@ -29,9 +52,10 @@ Agent.getVersion = function () {
     var m = out.trim().match(/^OpenSSH_([0-9]+)\.([0-9]+)p([0-9]+)[, ]|$/);
     if (!m) {
         console.error('ssh -V: %s', out);
-        return (undefined);
+        return (new SSHVersion(0, 0, 0));
     }
-    return ([parseInt(m[1], 10), parseInt(m[2], 10), parseInt(m[3], 10)]);
+    return (new SSHVersion(parseInt(m[1], 10), parseInt(m[2], 10),
+        parseInt(m[3], 10)));
 };
 
 Agent.prototype.open = function () {
