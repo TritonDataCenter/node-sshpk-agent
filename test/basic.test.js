@@ -66,6 +66,22 @@ test('Client takes path to socket from environment', function (t) {
 	t.end();
 });
 
+test('Client throws error containing socket path', function (t) {
+	var c = new sshpkAgent.Client({
+		socketPath: '/tmp/this.path.does.not.exist'
+	});
+	t.ok(c);
+	c.on('error', function (err) {
+		t.ok(err);
+		t.notStrictEqual(-1,
+		    err.toString().indexOf('this.path.does.not.exist'));
+		t.notStrictEqual(-1,
+		    err.toString().indexOf('ENOENT'));
+		t.end();
+	});
+	c.connect();
+});
+
 test('Client can connect', function (t) {
 	var c = new sshpkAgent.Client();
 	c.ref();
