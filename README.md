@@ -238,3 +238,15 @@ Parameters
                  this request
 - `callback` -- function `(error)` with arguments:
   - `error` -- null if no error, otherwise instance of `Error`
+
+### `Client#listExtensions(callback);`
+
+Requests the "query" extension (see draft-miller-ssh-agent-00) from the agent
+to list what agent protocol extensions are supported. These are returned as
+a list of Strings.
+
+Parameters
+
+ - `callback` -- function `(error, extensions)` with arguments:
+  - `error` -- null if no error, otherwise instance of `Error`
+  - `extensions` -- Array of String, supported extensions
