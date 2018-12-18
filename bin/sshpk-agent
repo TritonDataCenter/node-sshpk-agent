@@ -1,0 +1,407 @@
+#!/usr/bin/env node
+// -*- mode: js -*-
+// vim: set filetype=javascript :
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *
+ * Copyright 2019 Joyent, Inc
+ * Author: Alex Wilson <alex.wilson@joyent.com>
+ */
+
+var mod_crypto = require('crypto');
+var mod_dashdash = require('dashdash');
+var mod_fs = require('fs');
+var mod_getpass = require('getpass');
+var mod_readline = require('readline');
+var mod_sshpk = require('sshpk');
+var mod_tty = require('tty');
+var mod_verror = require('verror');
+
+var mod_agent = require('../lib/index');
+
+/* How long should we aim for the benchmark to take? (ms) */
+var BENCHMARK_TIME = 4000;
+var DEFAULT_CERT_LIFETIME = 3600;
+
+var EXIT_CODE = {
+	SUCCESS: 0,
+	ERROR: 1,		/* Other errors */
+	BAD_FILTERS: 2,		/* Filtering options did not select 1 key */
+	USAGE: 3,		/* Bad cmdline args, printed usage */
+};
+
+var options = [
+	{
+		names: ['help', 'h'],
+		type: 'bool',
+		help: 'Shows this help text'
+	},
+	{
+		names: ['fingerprint', 'f'],
+		type: 'string',
+		help: 'Fingerprint for selecting a key'
+	},
+	{
+		names: ['comment', 'c'],
+		type: 'string',
+		help: 'Comment or partial comment for selecting a key'
+	},
+	{
+		names: ['format', 'F'],
+		type: 'string',
+		help: 'Signature output format (ssh, asn1)'
+	},
+	{
+		names: ['issuer'],
+		type: 'string',
+		help: 'Certificate issuer DN'
+	},
+	{
+		names: ['subject-key'],
+		type: 'string',
+		help: 'Certificate subject public key'
+	},
+	{
+		names: ['subject'],
+		type: 'string',
+		help: 'Certificate subject DN'
+	},
+	{
+		names: ['purposes'],
+		type: 'string',
+		help: 'Certificate X.509 purposes, comma-separated'
+	},
+	{
+		names: ['lifetime'],
+		type: 'integer',
+		help: 'Certificate lifetime in seconds'
+	}
+];
+
+var subcoms = {};
+
+function ifError(error) {
+	if (!error)
+		return;
+	console.error('sshpk-agent: error: ' + error.toString());
+	if (process.env['DEBUG'])
+		console.error(error.stack);
+	process.exit(EXIT_CODE.ERROR);
+}
+
+function findKey(agent, opts, cb) {
+	agent.listKeys(function (err, keys) {
+		ifError(err);
+		var ks = keys.filter(function (key) {
+			if (opts.fingerprint &&
+			    !opts.fingerprint.matches(key))
+				return (false);
+			if (opts.comment &&
+			    key.comment.indexOf(opts.comment) === -1)
+				return (false);
+			return (true);
+		});
+		if (ks.length < 1) {
+			console.error('error: no keys matched selection ' +
+			    'criteria (--fingerprint and --comment)');
+			process.exit(EXIT_CODE.BAD_FILTERS);
+		}
+		if (ks.length > 1) {
+			console.error('error: more than one key matched ' +
+			    'selection criteria (--fingerprint and --comment)');
+			process.exit(EXIT_CODE.BAD_FILTERS);
+		}
+		cb(ks[0]);
+	});
+}
+
+subcoms['list'] = {
+	minArgc: 0,
+	maxArgc: 0,
+	help: function () {
+		console.error('list           lists keys in the agent');
+	},
+	run: function (agent, opts, args) {
+		agent.listKeys(function (err, keys) {
+			ifError(err);
+			keys.forEach(function (key) {
+				if (opts.fingerprint &&
+				    !opts.fingerprint.matches(key))
+					return;
+				if (opts.comment &&
+				    key.comment.indexOf(opts.comment) === -1)
+					return;
+				console.log('%s\t%s\t%s',
+				    key.fingerprint().toString(),
+				    key.fingerprint('md5').toString('hex'),
+				    key.comment);
+			});
+		});
+	}
+};
+
+subcoms['pubkey'] = {
+	minArgc: 0,
+	maxArgc: 1,
+	help: function () {
+		console.error('pubkey [fmt]   prints pubkey in given format');
+		console.error('               (default ssh)');
+	},
+	run: function (agent, opts, args) {
+		findKey(agent, opts, function (key) {
+			var outFile = process.stdout;
+			var fmt = 'ssh';
+			if (args.length > 0)
+				fmt = args[0];
+			outFile.write(key.toBuffer(fmt));
+			outFile.once('drain', function () {
+				process.exit(EXIT_CODE.SUCCESS);
+			});
+		});
+	}
+};
+
+subcoms['sign'] = {
+	minArgc: 0,
+	maxArgc: 1,
+	help: function () {
+		console.error('sign [file]    signs a file or stdin');
+	},
+	run: function (agent, opts, args) {
+		findKey(agent, opts, function (key) {
+			var inFile = process.stdin;
+			if (args.length > 0) {
+				try {
+					inFile = mod_fs.createReadStream(
+					    args[0]);
+				} catch (err) {
+					ifError(err);
+				}
+			}
+			var fmt = 'asn1';
+			if (opts.format)
+				fmt = opts.format;
+			var outFile = process.stdout;
+			var data = [];
+			inFile.on('readable', function () {
+				var chunk;
+				while ((chunk = inFile.read()) !== null)
+					data.push(chunk);
+			});
+			inFile.on('end', function () {
+				data = Buffer.concat(data);
+				agent.sign(key, data, function (err2, sig) {
+					ifError(err2);
+					outFile.write(sig.toBuffer(fmt));
+					outFile.once('drain', function () {
+						process.exit(EXIT_CODE.SUCCESS);
+					});
+				});
+			});
+		});
+	}
+};
+
+subcoms['benchmark'] = {
+	minArgc: 0,
+	maxArgc: 0,
+	help: function () {
+		console.error('benchmark      tests performance of signatures');
+	},
+	run: function (agent, opts, args) {
+		findKey(agent, opts, function (key) {
+			var data = mod_crypto.randomBytes(16);
+			/*
+			 * Do an initial single signature to get a rough idea
+			 * of how many iterations we want to do to get a good
+			 * average.
+			 *
+			 * Different agents (e.g. ones operating with keys in
+			 * RAM vs ones talking to hardware devices) can have
+			 * orders of magnitude of difference in throughput, so
+			 * there's not really any constant we can put as the
+			 * count here that would make sense.
+			 */
+			var t1 = process.hrtime();
+			var t3;
+			var count, total;
+			agent.sign(key, data, function (err, _) {
+				var t2 = process.hrtime(t1);
+				ifError(err);
+				var delta = t2[0] * 1000 + t2[1] / 1e6;
+				/*
+				 * Ideally we want to spend about BENCHMARK_TIME
+				 * doing sign operations, so figure out approx
+				 * how many iterations we'll need for that.
+				 */
+				count = 10 * Math.ceil(
+				    Math.round(BENCHMARK_TIME / delta) / 10);
+				total = count;
+				console.error('iterations: %d', count);
+				t3 = process.hrtime();
+				next();
+			});
+
+			function next() {
+				if (--count > 0) {
+					agent.sign(key, data,
+					    function (err, _) {
+						ifError(err);
+						next();
+					});
+				} else {
+					var t4 = process.hrtime(t3);
+					var delta = t4[0] * 1000 + t4[1] / 1e6;
+					var t = Math.round(delta / total);
+					console.error('time per sign: %d ms',
+					    t);
+					process.exit(EXIT_CODE.SUCCESS);
+				}
+			}
+		});
+	}
+};
+
+subcoms['make-cert'] = {
+	minArgc: 0,
+	maxArgc: 0,
+	help: function () {
+		console.error('make-cert      generates and signs x509 certs');
+	},
+	run: function (agent, opts, args) {
+		if (!opts.issuer) {
+			console.error(
+			    'sshpk-agent: make-cert requires --issuer option');
+			process.exit(EXIT_CODE.USAGE);
+		}
+		if (!opts.subject) {
+			console.error(
+			    'sshpk-agent: make-cert requires --subject option');
+			process.exit(EXIT_CODE.USAGE);
+		}
+		if (!opts.subject_key) {
+			console.error('sshpk-agent: make-cert requires ' +
+			    '--subject-key option');
+			process.exit(EXIT_CODE.USAGE);
+		}
+		findKey(agent, opts, function (issuerKey) {
+			var issuer = mod_sshpk.identityFromDN(opts.issuer);
+			var subject = mod_sshpk.identityFromDN(opts.subject);
+			var subjectKey = opts.subject_key;
+
+			var certOpts = {};
+			certOpts.lifetime = opts.lifetime ||
+			    DEFAULT_CERT_LIFETIME;
+
+			/*
+			 * Serial is a 64-bit signed int, and can't be negative
+			 * in many impls, so clear the high bit.
+			 */
+			certOpts.serial = mod_crypto.randomBytes(8);
+			certOpts.serial[0] &= 0x7F;
+
+			if (opts.purposes)
+				certOpts.purposes = opts.purposes.split(',');
+
+			var outFile = process.stdout;
+
+			agent.createCertificate(subject, subjectKey, issuer,
+			    issuerKey, certOpts, function (err, cert) {
+				ifError(err);
+				outFile.write(cert.toBuffer('pem'));
+				outFile.once('drain', function () {
+					process.exit(EXIT_CODE.SUCCESS);
+				});
+			});
+		});
+	}
+};
+
+subcoms['extensions'] = {
+	minArgc: 0,
+	maxArgc: 0,
+	help: function () {
+		console.error('extensions     lists extensions supported');
+	},
+	run: function (agent, opts, args) {
+		agent.listExtensions(function (err, exts) {
+			ifError(err);
+			exts.forEach(function (ext) {
+				console.log(ext);
+			});
+		});
+	}
+};
+
+if (require.main === module) {
+	var parser = mod_dashdash.createParser({
+		options: options
+	});
+
+	try {
+		var opts = parser.parse(process.argv);
+	} catch (e) {
+		/* Don't use ifError() since we want to exit with USAGE */
+		console.error('sshpk-agent: error: %s', e.message);
+		process.exit(EXIT_CODE.USAGE);
+	}
+
+	function usage() {
+		var help = parser.help({}).trimRight();
+		console.error('sshpk-agent: ssh-agent swiss army knife\n');
+		console.error(help);
+		console.error('\nsubcommands:\n');
+		for (var cmd in subcoms)
+			subcoms[cmd].help();
+		process.exit(EXIT_CODE.USAGE);
+	}
+
+	if (opts.help)
+		usage();
+	if (opts._args.length < 1) {
+		console.error('error: subcommand required');
+		usage();
+	}
+
+	var subcomName = opts._args[0];
+	var subcom = subcoms[subcomName];
+	if (subcom === undefined) {
+		console.error('error: unknown subcommand %s', subcomName);
+		usage();
+	}
+
+	var args = opts._args.slice(1);
+	if (args.length < subcom.minArgc) {
+		console.error('error: argument required for %s', subcomName);
+		usage();
+	}
+	if (args.length > subcom.maxArgc) {
+		console.error('error: too many arguments for %s', subcomName);
+		usage();
+	}
+
+	if (opts.fingerprint) {
+		try {
+			opts.fingerprint =
+			    mod_sshpk.parseFingerprint(opts.fingerprint);
+		} catch (err) {
+			ifError(new mod_verror.VError(err, 'failed to parse ' +
+			    'fingerprint option'));
+		}
+	}
+
+	if (opts.subject_key) {
+		try {
+			opts.subject_key = mod_sshpk.parseKey(opts.subject_key,
+			    'auto', { filename: 'argument' });
+		} catch (err) {
+			ifError(new mod_verror.VError(err, 'failed to parse ' +
+			     'subject-key option'));
+		}
+	}
+
+	var agent = new mod_agent.Client();
+	subcom.run(agent, opts, args);
+}
