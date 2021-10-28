@@ -1,4 +1,12 @@
-// Copyright 2015 Joyent, Inc.  All rights reserved.
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
+/*
+ * Copyright 2021 Joyent, Inc.
+ */
 
 var test = require('tape').test;
 
@@ -98,10 +106,11 @@ test('Client can add an ECDSA key', function (t) {
 	});
 });
 
-var ver = Agent.getVersion();
-if (!ver.zero()) {
+Agent.getVersion(function (err, ver) {
+	if (err) {
+		console.log('Error getting SSH version: ' + err.out);
+	}
 	console.log('using OpenSSH version ' + ver);
-}
 
 test('Client can add an RSA certificate', function (t) {
 	var pem = fs.readFileSync(path.join(testDir, 'id_rsa'));
@@ -292,4 +301,5 @@ test('agent teardown', function (t) {
 	agent.close(function () {
 		t.end();
 	});
+});
 });

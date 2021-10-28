@@ -1,2 +1,3 @@
 /node_modules
 /sshpk-agent-*.tgz
+package-lock.json
