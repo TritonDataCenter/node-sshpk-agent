@@ -1,7 +1,15 @@
-// Copyright 2015 Joyent, Inc.  All rights reserved.
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
+/*
+ * Copyright 2021 Joyent, Inc.
+ */
 
 var spawn = require('child_process').spawn;
-var spawnSync = require('child_process').spawnSync;
+var exec = require('child_process').exec;
 var util = require('util');
 var EventEmitter = require('events').EventEmitter;
 var assert = require('assert-plus');
@@ -41,21 +49,20 @@ SSHVersion.prototype.toString = function () {
     return (this.major + '.' + this.minor + 'p' + this.patch);
 };
 
-Agent.getVersion = function () {
-    if (typeof (spawnSync) !== 'function')
-        return (undefined);
-
-    var kid = spawnSync('ssh', ['-V']);
-    var out = kid.stderr;
-    if (Buffer.isBuffer(out))
-        out = out.toString('ascii');
-    var m = out.trim().match(/^OpenSSH_([0-9]+)\.([0-9]+)p([0-9]+)[, ]|$/);
-    if (!m) {
-        console.error('ssh -V: %s', out);
-        return (new SSHVersion(0, 0, 0));
-    }
-    return (new SSHVersion(parseInt(m[1], 10), parseInt(m[2], 10),
-        parseInt(m[3], 10)));
+Agent.getVersion = function (cb) {
+    exec('ssh -V', function(err, stdout, stderr) {
+        var out = stderr;
+        if (Buffer.isBuffer(out))
+            out = out.toString('ascii');
+        var m = out.trim().match(/^OpenSSH_([0-9]+)\.([0-9]+)p([0-9]+)[, ]|$/);
+        if (!m) {
+            console.error('ssh -V: %s', out);
+            return (cb({error: err, out: out, err: stderr},
+                new SSHVersion(0, 0, 0)));
+        }
+        return (cb(null, new SSHVersion(parseInt(m[1], 10), parseInt(m[2], 10),
+            parseInt(m[3], 10))));
+    });
 };
 
 Agent.prototype.open = function () {

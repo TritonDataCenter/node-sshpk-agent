@@ -98,10 +98,11 @@ test('Client can add an ECDSA key', function (t) {
 	});
 });
 
-var ver = Agent.getVersion();
-if (!ver.zero()) {
+Agent.getVersion(function (err, ver) {
+	if (err) {
+		console.log('Error getting SSH version: ' + err.out);
+	}
 	console.log('using OpenSSH version ' + ver);
-}
 
 test('Client can add an RSA certificate', function (t) {
 	var pem = fs.readFileSync(path.join(testDir, 'id_rsa'));
@@ -292,4 +293,5 @@ test('agent teardown', function (t) {
 	agent.close(function () {
 		t.end();
 	});
+});
 });
